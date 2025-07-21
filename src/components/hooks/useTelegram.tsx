@@ -1,36 +1,56 @@
-import { useEffect } from "react";
-
-const tg = (await import('@twa-dev/sdk')).default;
+import { useEffect, useState } from "react";
 
 export function useTelegram() {
-    
-    const onClose = () => {
-        tg.close();
-    };
+    const [tg, setTg] = useState<any>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    const onToggleButton = () => {
-        if (tg.MainButton.isVisible) {
-            tg.MainButton.hide();
-        } else {
-            tg.MainButton.show();
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            import('@twa-dev/sdk').then((module) => {
+                const telegramSDK = module.default;
+                setTg(telegramSDK);
+                telegramSDK.ready();
+                
+                setIsLoaded(true);
+            }).catch((error) => {
+                console.error('Failed to load Telegram SDK:', error);
+            });
+        }
+    }, []);
+
+    const onClose = () => {
+        if (tg) {
+            tg.close();
         }
     };
 
-    const openInvoice = (invoiceLink : any, callback : any) => {
-        tg.openInvoice(invoiceLink, callback);
+    const onToggleButton = () => {
+        if (tg && tg.MainButton) {
+            if (tg.MainButton.isVisible) {
+                tg.MainButton.hide();
+            } else {
+                tg.MainButton.show();
+            }
+        }
     };
 
-    const showAlert = (message : any) => {
-        tg.showAlert(message);
+    const openInvoice = (invoiceLink: any, callback: any) => {
+        if (tg) {
+            tg.openInvoice(invoiceLink, callback);
+        }
     };
 
-    const showConfirm = (message : any, callback : any) => {
-        tg.showConfirm(message, callback);
+    const showAlert = (message: any) => {
+        if (tg) {
+            tg.showAlert(message);
+        }
     };
 
-    useEffect(() => {
-        tg.ready();
-    }, []);
+    const showConfirm = (message: any, callback: any) => {
+        if (tg) {
+            tg.showConfirm(message, callback);
+        }
+    };
 
     return {
         onClose,
@@ -39,7 +59,8 @@ export function useTelegram() {
         showAlert,
         showConfirm,
         tg,
-        user: tg.initDataUnsafe?.user,
-        queryId: tg.initDataUnsafe?.query_id,
+        user: tg?.initDataUnsafe?.user,
+        queryId: tg?.initDataUnsafe?.query_id,
+        isLoaded, 
     };
 }

@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect } from "react";
-import './ProductList.css'
 import ProductItem from "../ProductItem/ProductItem";
 import { useTelegram } from "@/components/hooks/useTelegram";
 import { useState } from "react";
-import { handleStarsPayment } from "@/features/payment/Payment";
+import { usePayment } from "@/features/payment/Payment";
 import { serverLink } from "@/types/Constants";
 
 const products = [
@@ -19,7 +18,7 @@ export const getTotalPrice = (items : any) => {
 }
 
 const ProductList = () => {
-    const [addedItems, setAddedItems] = useState<any[]>([])
+    const { addedItems, setAddedItems, handleStarsPayment } = usePayment();
     const {tg, queryId, user} = useTelegram();
     
     const onSendData = useCallback(() => {
@@ -39,7 +38,8 @@ const ProductList = () => {
     }, [addedItems, queryId])
 
     const onAdd = (product : any) => {
-        const alreadyAdded = addedItems.find(item => item.id === product.id);
+        const addedItemsTyped = addedItems as any[];
+        const alreadyAdded = addedItemsTyped.find(item => item.id === product.id);
         let newItems = [];
 
         if(alreadyAdded) {
@@ -61,12 +61,18 @@ const ProductList = () => {
     }
 
     useEffect(() => {
-        if (addedItems.length > 0) {
+        if (addedItems.length > 0 && tg && tg.MainButton) {
             tg.MainButton.onClick(handleStarsPayment);
         }
-        
+    
         return () => {
-            tg.MainButton.offClick(handleStarsPayment);
+            try {
+                if (tg && tg.MainButton && typeof tg.MainButton.offClick === 'function') {
+                    tg.MainButton.offClick(handleStarsPayment);
+                }
+            } catch (error) {
+                console.warn('Error removing MainButton click handler:', error);
+            }
         };
     }, [handleStarsPayment, addedItems.length, tg]);
 
