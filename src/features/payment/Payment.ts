@@ -6,7 +6,7 @@ export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
     const { tg, queryId, user } = useTelegram();
     
-    const serverLink = process.env.serverLink;
+    const serverLink = 'http://80.78.242.12'
 
     const handleStarsPayment = useCallback(async () => {
         try {
@@ -17,7 +17,7 @@ export function usePayment() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                
+
                 body: JSON.stringify({
                     products: addedItems,
                     totalPrice: totalPrice,
