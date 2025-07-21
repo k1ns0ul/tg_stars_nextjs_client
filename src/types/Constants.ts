@@ -1,0 +1,1 @@
+export const serverLink = process.env.serverLink
