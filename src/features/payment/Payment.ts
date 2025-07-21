@@ -6,7 +6,7 @@ export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
     const { tg, queryId, user } = useTelegram();
     
-    const serverLink = 'http://80.78.242.12'
+    const serverLink = 'http://80.78.242.12';
 
     const handleStarsPayment = useCallback(async () => {
         try {
