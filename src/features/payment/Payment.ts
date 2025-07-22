@@ -5,15 +5,27 @@ import { useTelegram } from '../../components/hooks/useTelegram';
 export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
     const { tg, queryId, user } = useTelegram();
-
     const serverLink = 'https://80.78.242.12';
 
     const handleStarsPayment = useCallback(async () => {
         try {
+            // Предварительные проверки
+            if (!addedItems || addedItems.length === 0) {
+                throw new Error('Корзина пуста');
+            }
+
+            if (!tg) {
+                throw new Error('Telegram WebApp недоступен');
+            }
+
+            if (!user?.id) {
+                throw new Error('Пользователь не определен');
+            }
+
             const totalPrice = getTotalPrice(addedItems);
             
             if (!Number.isInteger(totalPrice) || totalPrice <= 0) {
-                throw new Error('Неверная сумма платежа');
+                throw new Error(`Неверная сумма платежа: ${totalPrice}`);
             }
 
             console.log('Отправка запроса на создание инвойса:', {
@@ -45,13 +57,13 @@ export function usePayment() {
             const { invoice_link } = await response.json();
             
             console.log('Получена ссылка на инвойс:', invoice_link);
-
+            
             if (tg && invoice_link) {
                 if (typeof tg.openInvoice !== 'function') {
                     throw new Error('Метод openInvoice недоступен');
                 }
-
-                tg.openInvoice(invoice_link, (status: any) => {
+                
+                tg.openInvoice(invoice_link, (status : any) => {
                     console.log('Статус оплаты:', status);
                     
                     if (status === 'paid') {
@@ -72,8 +84,7 @@ export function usePayment() {
             } else {
                 throw new Error('Telegram WebApp недоступен или некорректная ссылка на инвойс');
             }
-
-        } catch (error: any) {
+        } catch (error : any) {
             console.error('Ошибка при создании инвойса:', error);
             if (tg) {
                 tg.showAlert('Ошибка при создании инвойса: ' + error.message);
