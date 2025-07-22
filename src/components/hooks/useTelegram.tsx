@@ -6,78 +6,107 @@ export function useTelegram() {
     const [queryId, setQueryId] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [initData, setInitData] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const webApp = (window as any)?.Telegram?.WebApp;
-            if (webApp) {
-                console.log('Используем нативный Telegram WebApp API');
-                webApp.ready();
+        const initTelegram = async () => {
+            try {
+                console.log('=== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP ===');
                 
-                setTg(webApp);
-                setUser(webApp.initDataUnsafe?.user || null);
-                setQueryId(webApp.initDataUnsafe?.query_id || null);
-                setInitData(webApp.initDataUnsafe || null);
+                const WebApp = (await import('@twa-dev/sdk')).default;
+                
+                console.log('SDK импортирован:', {
+                    version: WebApp.version,
+                    platform: WebApp.platform,
+                    isExpanded: WebApp.isExpanded
+                });
+                
+                const isTelegram = WebApp.isExpanded !== undefined;
+                
+                if (isTelegram) {
+                    console.log('Приложение запущено в Telegram');
+                    
+                    WebApp.ready();
+                    WebApp.expand();
+                    
+                    setTg(WebApp);
+                    
+                    console.log('initDataUnsafe:', WebApp.initDataUnsafe);
+                    console.log('initData:', WebApp.initData);
+                    
+                    if (WebApp.initDataUnsafe && WebApp.initDataUnsafe.user) {
+                        const userData = WebApp.initDataUnsafe.user;
+                        
+                        console.log('Данные пользователя найдены:', userData);
+                        
+                        setUser(userData);
+                        setQueryId(WebApp.initDataUnsafe.query_id || null);
+                        setInitData(WebApp.initDataUnsafe);
+                        setError(null);
+                        
+                    } else {
+                        console.error('Данные пользователя недоступны');
+                        setError('Данные пользователя недоступны из Telegram');
+                    }
+                } else {
+                    console.warn('Приложение не запущено в Telegram');
+                    setError('Приложение должно быть запущено в Telegram');
+                }
+                
+            } catch (err: any) {
+                console.error('Ошибка инициализации Telegram:', err);
+                setError('Ошибка загрузки Telegram SDK: ' + err.message);
+            } finally {
                 setIsLoaded(true);
-                
-                console.log('Native Telegram WebApp loaded:', {
-                    user: webApp.initDataUnsafe?.user,
-                    queryId: webApp.initDataUnsafe?.query_id,
-                    initData: webApp.initDataUnsafe
-                });
-            } else {
-                import('@twa-dev/sdk').then((module) => {
-                    const telegramSDK = module.default;
-                    
-                    telegramSDK.ready();
-                    
-                    setTg(telegramSDK);
-                    setUser(telegramSDK.initDataUnsafe?.user || null);
-                    setQueryId(telegramSDK.initDataUnsafe?.query_id || null);
-                    setInitData(telegramSDK.initDataUnsafe || null);
-                    setIsLoaded(true);
-                    
-                    console.log('Telegram SDK loaded:', {
-                        user: telegramSDK.initDataUnsafe?.user,
-                        queryId: telegramSDK.initDataUnsafe?.query_id,
-                        initData: telegramSDK.initDataUnsafe
-                    });
-                    
-                }).catch((error) => {
-                    console.error('Failed to load Telegram SDK:', error);
-                    setIsLoaded(true); 
-                });
             }
-        }
+        };
+
+        initTelegram();
     }, []);
 
     const getUserId = () => {
+       
+        
         if (user?.id) {
             return user.id;
         }
         
         if (tg?.initDataUnsafe?.user?.id) {
+            console.log('ID найден в tg.initDataUnsafe:', tg.initDataUnsafe.user.id);
             return tg.initDataUnsafe.user.id;
         }
         
-        const webApp = (window as any)?.Telegram?.WebApp;
-        if (webApp?.initDataUnsafe?.user?.id) {
-            return webApp.initDataUnsafe.user.id;
+        if (tg?.initData) {
+            console.log('Парсинг initData строки:', tg.initData);
+            try {
+                const params = new URLSearchParams(tg.initData);
+                const userString = params.get('user');
+                if (userString) {
+                    const userObj = JSON.parse(decodeURIComponent(userString));
+                    if (userObj.id) {
+                        console.log('ID найден при парсинге:', userObj.id);
+                        return userObj.id;
+                    }
+                }
+            } catch (e) {
+                console.error('Ошибка парсинга initData:', e);
+            }
         }
         
+        console.log('User ID не найден');
         return null;
     };
 
     const isInTelegram = () => {
-        return !!(
-            (window as any)?.Telegram?.WebApp || 
-            tg?.initDataUnsafe || 
-            user?.id
-        );
+        return !!(tg && tg.isExpanded !== undefined && user?.id);
+    };
+
+    const isFunctionAvailable = (functionName: string) => {
+        return tg && typeof tg[functionName] === 'function';
     };
 
     const onClose = () => {
-        if (tg) {
+        if (isFunctionAvailable('close')) {
             tg.close();
         }
     };
@@ -92,24 +121,25 @@ export function useTelegram() {
         }
     };
 
-    const openInvoice = (invoiceLink: any, callback: any) => {
-        if (tg && typeof tg.openInvoice === 'function') {
+    const openInvoice = (invoiceLink: string, callback: (status: string) => void) => {
+        if (isFunctionAvailable('openInvoice')) {
             tg.openInvoice(invoiceLink, callback);
         } else {
-            console.error('openInvoice method not available');
+            console.error('openInvoice недоступен');
+            callback('failed');
         }
     };
 
-    const showAlert = (message: any) => {
-        if (tg && typeof tg.showAlert === 'function') {
+    const showAlert = (message: string) => {
+        if (isFunctionAvailable('showAlert')) {
             tg.showAlert(message);
         } else {
             alert(message);
         }
     };
 
-    const showConfirm = (message: any, callback: any) => {
-        if (tg && typeof tg.showConfirm === 'function') {
+    const showConfirm = (message: string, callback: (result: boolean) => void) => {
+        if (isFunctionAvailable('showConfirm')) {
             tg.showConfirm(message, callback);
         } else {
             const result = confirm(message);
@@ -128,7 +158,9 @@ export function useTelegram() {
         queryId,
         isLoaded,
         initData,
+        error,
         getUserId,
         isInTelegram,
+        isFunctionAvailable,
     };
 }
