@@ -4,12 +4,22 @@ import { useTelegram } from '../../components/hooks/useTelegram';
 
 export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
-    const { tg, queryId, user } = useTelegram();
+    const { tg, queryId, user, isLoaded } = useTelegram();
     const serverLink = 'https://80.78.242.12';
 
     const handleStarsPayment = useCallback(async () => {
         try {
-            // Предварительные проверки
+            console.log('Начало обработки платежа:', {
+                isLoaded,
+                user,
+                userId: user?.id,
+                addedItemsLength: addedItems?.length
+            });
+
+            if (!isLoaded) {
+                throw new Error('sdk еще не загружен');
+            }
+
             if (!addedItems || addedItems.length === 0) {
                 throw new Error('Корзина пуста');
             }
@@ -18,8 +28,26 @@ export function usePayment() {
                 throw new Error('Telegram WebApp недоступен');
             }
 
-            if (!user?.id) {
-                throw new Error('Пользователь не определен');
+            let userId = null;
+            
+            if (user?.id) {
+                userId = user.id;
+            } else if (tg?.initDataUnsafe?.user?.id) {
+                userId = tg.initDataUnsafe.user.id;
+            } else {
+                const webApp = (window as any)?.Telegram?.WebApp;
+                if (webApp?.initDataUnsafe?.user?.id) {
+                    userId = webApp.initDataUnsafe.user.id;
+                }
+            }
+
+            if (!userId) {
+                console.error('Данные пользователя:', {
+                    user,
+                    tgInitData: tg?.initDataUnsafe,
+                    webAppData: (window as any)?.Telegram?.WebApp?.initDataUnsafe
+                });
+                throw new Error('Не удалось определить ID пользователя. Убедитесь, что приложение запущено в Telegram.');
             }
 
             const totalPrice = getTotalPrice(addedItems);
@@ -32,7 +60,7 @@ export function usePayment() {
                 products: addedItems,
                 totalPrice,
                 queryId,
-                userId: user?.id
+                userId
             });
 
             const response = await fetch(serverLink + '/create-invoice', {
@@ -44,14 +72,14 @@ export function usePayment() {
                     products: addedItems,
                     totalPrice: totalPrice,
                     queryId,
-                    userId: user?.id
+                    userId: userId
                 })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Ошибка ответа сервера:', errorData);
-                throw new Error(errorData.details || 'Ошибка создания инвойса');
+                throw new Error(errorData.details || errorData.error || 'Ошибка создания инвойса');
             }
 
             const { invoice_link } = await response.json();
@@ -88,9 +116,11 @@ export function usePayment() {
             console.error('Ошибка при создании инвойса:', error);
             if (tg) {
                 tg.showAlert('Ошибка при создании инвойса: ' + error.message);
+            } else {
+                alert('Ошибка при создании инвойса: ' + error.message);
             }
         }
-    }, [addedItems, tg, queryId, user, serverLink]);
+    }, [addedItems, tg, queryId, user, serverLink, isLoaded]);
 
     return { 
         addedItems, 
@@ -98,6 +128,7 @@ export function usePayment() {
         handleStarsPayment, 
         tg, 
         queryId, 
-        user 
+        user,
+        isLoaded
     };
 }
