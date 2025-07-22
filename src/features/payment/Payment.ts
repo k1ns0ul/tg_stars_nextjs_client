@@ -4,7 +4,7 @@ import { useTelegram } from '../../components/hooks/useTelegram';
 
 export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
-    const { tg, queryId, user, isLoaded } = useTelegram();
+    const { tg, queryId, user, isLoaded, getUserId, isInTelegram } = useTelegram();
     const serverLink = 'https://80.78.242.12';
 
     const handleStarsPayment = useCallback(async () => {
@@ -12,12 +12,16 @@ export function usePayment() {
             console.log('Начало обработки платежа:', {
                 isLoaded,
                 user,
-                userId: user?.id,
-                addedItemsLength: addedItems?.length
+                addedItemsLength: addedItems?.length,
+                isInTelegram: isInTelegram()
             });
 
             if (!isLoaded) {
-                throw new Error('sdk еще не загружен');
+                throw new Error('SDK еще не загружен. Попробуйте еще раз.');
+            }
+
+            if (!isInTelegram()) {
+                throw new Error('Приложение должно быть запущено в Telegram.');
             }
 
             if (!addedItems || addedItems.length === 0) {
@@ -28,24 +32,14 @@ export function usePayment() {
                 throw new Error('Telegram WebApp недоступен');
             }
 
-            let userId = null;
+            const userId = getUserId();
             
-            if (user?.id) {
-                userId = user.id;
-            } else if (tg?.initDataUnsafe?.user?.id) {
-                userId = tg.initDataUnsafe.user.id;
-            } else {
-                const webApp = (window as any)?.Telegram?.WebApp;
-                if (webApp?.initDataUnsafe?.user?.id) {
-                    userId = webApp.initDataUnsafe.user.id;
-                }
-            }
-
             if (!userId) {
-                console.error('Данные пользователя:', {
+                console.error('Отладочная информация:', {
                     user,
                     tgInitData: tg?.initDataUnsafe,
-                    webAppData: (window as any)?.Telegram?.WebApp?.initDataUnsafe
+                    webAppData: (window as any)?.Telegram?.WebApp?.initDataUnsafe,
+                    isInTelegram: isInTelegram()
                 });
                 throw new Error('Не удалось определить ID пользователя. Убедитесь, что приложение запущено в Telegram.');
             }
@@ -57,7 +51,7 @@ export function usePayment() {
             }
 
             console.log('Отправка запроса на создание инвойса:', {
-                products: addedItems,
+                products: addedItems.length,
                 totalPrice,
                 queryId,
                 userId
@@ -77,50 +71,62 @@ export function usePayment() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({}));
                 console.error('Ошибка ответа сервера:', errorData);
-                throw new Error(errorData.details || errorData.error || 'Ошибка создания инвойса');
+                throw new Error(errorData.details || errorData.error || `Ошибка сервера: ${response.status}`);
             }
 
-            const { invoice_link } = await response.json();
+            const responseData = await response.json();
+            const { invoice_link } = responseData;
             
             console.log('Получена ссылка на инвойс:', invoice_link);
             
-            if (tg && invoice_link) {
-                if (typeof tg.openInvoice !== 'function') {
-                    throw new Error('Метод openInvoice недоступен');
-                }
+            if (!invoice_link) {
+                throw new Error('Сервер не вернул ссылку на инвойс');
+            }
+            
+            if (typeof tg.openInvoice !== 'function') {
+                throw new Error('Метод openInvoice недоступен в этой версии Telegram');
+            }
+            
+            tg.openInvoice(invoice_link, (status: string) => {
+                console.log('Статус оплаты:', status);
                 
-                tg.openInvoice(invoice_link, (status : any) => {
-                    console.log('Статус оплаты:', status);
-                    
-                    if (status === 'paid') {
+                switch (status) {
+                    case 'paid':
                         console.log('Оплата прошла успешно!');
                         setAddedItems([]);
-                        tg.MainButton.hide();
+                        if (tg.MainButton) {
+                            tg.MainButton.hide();
+                        }
                         tg.showAlert('Оплата прошла успешно!');
-                    } else if (status === 'cancelled') {
+                        break;
+                    case 'cancelled':
                         console.log('Оплата отменена');
                         tg.showAlert('Оплата отменена');
-                    } else if (status === 'failed') {
+                        break;
+                    case 'failed':
                         console.log('Ошибка оплаты');
-                        tg.showAlert('Ошибка оплаты');
-                    } else {
+                        tg.showAlert('Ошибка оплаты. Попробуйте еще раз.');
+                        break;
+                    default:
                         console.log('Неизвестный статус:', status);
-                    }
-                });
-            } else {
-                throw new Error('Telegram WebApp недоступен или некорректная ссылка на инвойс');
-            }
-        } catch (error : any) {
+                        tg.showAlert('Получен неизвестный статус оплаты');
+                }
+            });
+
+        } catch (error: any) {
             console.error('Ошибка при создании инвойса:', error);
-            if (tg) {
-                tg.showAlert('Ошибка при создании инвойса: ' + error.message);
+            
+            const errorMessage = error.message || 'Неизвестная ошибка';
+            
+            if (tg && typeof tg.showAlert === 'function') {
+                tg.showAlert('Ошибка: ' + errorMessage);
             } else {
-                alert('Ошибка при создании инвойса: ' + error.message);
+                alert('Ошибка: ' + errorMessage);
             }
         }
-    }, [addedItems, tg, queryId, user, serverLink, isLoaded]);
+    }, [addedItems, tg, queryId, user, serverLink, isLoaded, getUserId, isInTelegram]);
 
     return { 
         addedItems, 
@@ -129,6 +135,8 @@ export function usePayment() {
         tg, 
         queryId, 
         user,
-        isLoaded
+        isLoaded,
+        getUserId,
+        isInTelegram
     };
 }
