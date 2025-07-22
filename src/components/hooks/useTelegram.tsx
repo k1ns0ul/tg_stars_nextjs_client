@@ -53,10 +53,27 @@ export function useTelegram() {
             return user.id.toString();
         }
         
+        if (tg?.initData) {
+            try {
+                const params = new URLSearchParams(tg.initData);
+                const userString = params.get('user');
+                if (userString) {
+                    const userObj = JSON.parse(decodeURIComponent(userString));
+                    if (userObj.id) {
+                        return userObj.id.toString();
+                    }
+                }
+            } catch (e) {
+            }
+        }
+        
+        if ((window as any)?.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+            return (window as any).Telegram.WebApp.initDataUnsafe.user.id.toString();
+        }
+        
         return null;
     };
 
-    // ИСПРАВЛЕНО: Проверяем только наличие Telegram WebApp, а не user.id
     const isInTelegram = () => {
         return !!(tg && tg.isExpanded !== undefined);
     };

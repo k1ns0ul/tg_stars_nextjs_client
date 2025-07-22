@@ -25,14 +25,10 @@ export function usePayment() {
                 throw new Error('Telegram WebApp недоступен');
             }
 
-            let userId = getUserId();
-            
-            if (!userId && tg.initDataUnsafe?.user?.id) {
-                userId = tg.initDataUnsafe.user.id.toString();
-            }
+            const userId = getUserId();
             
             if (!userId) {
-                userId = '0';
+                throw new Error('Не удалось определить ID пользователя. Убедитесь, что приложение запущено в Telegram.');
             }
 
             const totalPrice = getTotalPrice(addedItems);
