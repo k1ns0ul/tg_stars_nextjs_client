@@ -9,13 +9,6 @@ export function usePayment() {
 
     const handleStarsPayment = useCallback(async () => {
         try {
-            console.log('Начало обработки платежа:', {
-                isLoaded,
-                user,
-                addedItemsLength: addedItems?.length,
-                isInTelegram: isInTelegram()
-            });
-
             if (!isLoaded) {
                 throw new Error('SDK еще не загружен. Попробуйте еще раз.');
             }
@@ -32,16 +25,14 @@ export function usePayment() {
                 throw new Error('Telegram WebApp недоступен');
             }
 
-            const userId = getUserId();
+            let userId = getUserId();
+            
+            if (!userId && tg.initDataUnsafe?.user?.id) {
+                userId = tg.initDataUnsafe.user.id.toString();
+            }
             
             if (!userId) {
-                console.error('Отладочная информация:', {
-                    user,
-                    tgInitData: tg?.initDataUnsafe,
-                    webAppData: (window as any)?.Telegram?.WebApp?.initDataUnsafe,
-                    isInTelegram: isInTelegram()
-                });
-                throw new Error('Не удалось определить ID пользователя. Убедитесь, что приложение запущено в Telegram.');
+                userId = '0';
             }
 
             const totalPrice = getTotalPrice(addedItems);
@@ -49,13 +40,6 @@ export function usePayment() {
             if (!Number.isInteger(totalPrice) || totalPrice <= 0) {
                 throw new Error(`Неверная сумма платежа: ${totalPrice}`);
             }
-
-            console.log('Отправка запроса на создание инвойса:', {
-                products: addedItems.length,
-                totalPrice,
-                queryId,
-                userId
-            });
 
             const response = await fetch(serverLink + '/create-invoice', {
                 method: 'POST',
@@ -72,14 +56,11 @@ export function usePayment() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Ошибка ответа сервера:', errorData);
                 throw new Error(errorData.details || errorData.error || `Ошибка сервера: ${response.status}`);
             }
 
             const responseData = await response.json();
             const { invoice_link } = responseData;
-            
-            console.log('Получена ссылка на инвойс:', invoice_link);
             
             if (!invoice_link) {
                 throw new Error('Сервер не вернул ссылку на инвойс');
@@ -90,11 +71,8 @@ export function usePayment() {
             }
             
             tg.openInvoice(invoice_link, (status: string) => {
-                console.log('Статус оплаты:', status);
-                
                 switch (status) {
                     case 'paid':
-                        console.log('Оплата прошла успешно!');
                         setAddedItems([]);
                         if (tg.MainButton) {
                             tg.MainButton.hide();
@@ -102,22 +80,17 @@ export function usePayment() {
                         tg.showAlert('Оплата прошла успешно!');
                         break;
                     case 'cancelled':
-                        console.log('Оплата отменена');
                         tg.showAlert('Оплата отменена');
                         break;
                     case 'failed':
-                        console.log('Ошибка оплаты');
                         tg.showAlert('Ошибка оплаты. Попробуйте еще раз.');
                         break;
                     default:
-                        console.log('Неизвестный статус:', status);
                         tg.showAlert('Получен неизвестный статус оплаты');
                 }
             });
 
         } catch (error: any) {
-            console.error('Ошибка при создании инвойса:', error);
-            
             const errorMessage = error.message || 'Неизвестная ошибка';
             
             if (tg && typeof tg.showAlert === 'function') {
