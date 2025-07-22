@@ -11,50 +11,30 @@ export function useTelegram() {
     useEffect(() => {
         const initTelegram = async () => {
             try {
-                console.log('=== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP ===');
-                
                 const WebApp = (await import('@twa-dev/sdk')).default;
-                
-                console.log('SDK импортирован:', {
-                    version: WebApp.version,
-                    platform: WebApp.platform,
-                    isExpanded: WebApp.isExpanded
-                });
                 
                 const isTelegram = WebApp.isExpanded !== undefined;
                 
                 if (isTelegram) {
-                    console.log('Приложение запущено в Telegram');
-                    
                     WebApp.ready();
                     WebApp.expand();
                     
                     setTg(WebApp);
                     
-                    console.log('initDataUnsafe:', WebApp.initDataUnsafe);
-                    console.log('initData:', WebApp.initData);
-                    
                     if (WebApp.initDataUnsafe && WebApp.initDataUnsafe.user) {
                         const userData = WebApp.initDataUnsafe.user;
-                        
-                        console.log('Данные пользователя найдены:', userData);
-                        
                         setUser(userData);
                         setQueryId(WebApp.initDataUnsafe.query_id || null);
                         setInitData(WebApp.initDataUnsafe);
                         setError(null);
-                        
                     } else {
-                        console.error('Данные пользователя недоступны');
                         setError('Данные пользователя недоступны из Telegram');
                     }
                 } else {
-                    console.warn('Приложение не запущено в Telegram');
                     setError('Приложение должно быть запущено в Telegram');
                 }
                 
             } catch (err: any) {
-                console.error('Ошибка инициализации Telegram:', err);
                 setError('Ошибка загрузки Telegram SDK: ' + err.message);
             } finally {
                 setIsLoaded(true);
@@ -65,40 +45,20 @@ export function useTelegram() {
     }, []);
 
     const getUserId = () => {
-       
+        if (tg?.initDataUnsafe?.user?.id) {
+            return tg.initDataUnsafe.user.id.toString();
+        }
         
         if (user?.id) {
-            return user.id;
+            return user.id.toString();
         }
         
-        if (tg?.initDataUnsafe?.user?.id) {
-            console.log('ID найден в tg.initDataUnsafe:', tg.initDataUnsafe.user.id);
-            return tg.initDataUnsafe.user.id;
-        }
-        
-        if (tg?.initData) {
-            console.log('Парсинг initData строки:', tg.initData);
-            try {
-                const params = new URLSearchParams(tg.initData);
-                const userString = params.get('user');
-                if (userString) {
-                    const userObj = JSON.parse(decodeURIComponent(userString));
-                    if (userObj.id) {
-                        console.log('ID найден при парсинге:', userObj.id);
-                        return userObj.id;
-                    }
-                }
-            } catch (e) {
-                console.error('Ошибка парсинга initData:', e);
-            }
-        }
-        
-        console.log('User ID не найден');
         return null;
     };
 
+    // ИСПРАВЛЕНО: Проверяем только наличие Telegram WebApp, а не user.id
     const isInTelegram = () => {
-        return !!(tg && tg.isExpanded !== undefined && user?.id);
+        return !!(tg && tg.isExpanded !== undefined);
     };
 
     const isFunctionAvailable = (functionName: string) => {
@@ -125,7 +85,6 @@ export function useTelegram() {
         if (isFunctionAvailable('openInvoice')) {
             tg.openInvoice(invoiceLink, callback);
         } else {
-            console.error('openInvoice недоступен');
             callback('failed');
         }
     };
