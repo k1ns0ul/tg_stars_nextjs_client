@@ -1,4 +1,4 @@
-import ProductList from '../src/components/ProductList/ProductList'
+import ProductList from '../app/components/ProductList/ProductList'
 
 export default function Home() {
   return <ProductList />

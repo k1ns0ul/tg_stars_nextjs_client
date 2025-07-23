@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect } from "react";
 import ProductItem from "../ProductItem/ProductItem";
-import { useTelegram } from "@/components/hooks/useTelegram";
+import { useTelegram } from "../hooks/useTelegram";
 import { useState } from "react";
-import { usePayment } from "@/features/payment/Payment";
-import { serverLink } from "@/types/Constants";
+import { usePayment } from "../../features/payment/Payment";
+import { serverLink } from "../../types/Constants";
 
 const products = [
     {id: '1', title: 'item1', price: 1, description: 'description1'},
