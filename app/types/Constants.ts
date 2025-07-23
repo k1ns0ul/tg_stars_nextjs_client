@@ -1,1 +1,1 @@
-export const serverLink = process.env.serverLink
+export const token = process.env.TOKEN

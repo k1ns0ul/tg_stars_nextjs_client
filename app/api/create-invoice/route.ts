@@ -1,12 +1,14 @@
 import TelegramBot from "node-telegram-bot-api";
 import { NextRequest, NextResponse } from "next/server";
+import { token } from "@/types/Constants";
 
 export async function POST(request: NextRequest) {
     try {
         const { products, totalPrice, queryId, userId } = await request.json();
 
-        const token = '8101783883:AAFK39sE4PPqyfhhyBUcsqQWPFZCOXxhQjA';
-
+        if (!token){
+            throw new Error('токен отсутствует')
+        }
         const bot = new TelegramBot(token, { polling: false });
 
         bot.on('message', async (msg) => {
