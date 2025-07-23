@@ -20,7 +20,7 @@ export function usePayment() {
             if (!addedItems || addedItems.length === 0) {
                 throw new Error('Корзина пуста');
             }
-
+            
             if (!tg) {
                 throw new Error('Telegram WebApp недоступен');
             }
@@ -37,7 +37,8 @@ export function usePayment() {
                 throw new Error(`Неверная сумма платежа: ${totalPrice}`);
             }
 
-            const response = await fetch(serverLink + '/create-invoice', {
+
+            const response = await fetch('/api/create-invoice', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
