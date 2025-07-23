@@ -3,7 +3,6 @@ import ProductItem from "../ProductItem/ProductItem";
 import { useTelegram } from "../hooks/useTelegram";
 import { useState } from "react";
 import { usePayment } from "../../features/payment/Payment";
-import { serverLink } from "../../types/Constants";
 
 const products = [
     {id: '1', title: 'item1', price: 1, description: 'description1'},
@@ -21,22 +20,6 @@ const ProductList = () => {
     const { addedItems, setAddedItems, handleStarsPayment } = usePayment();
     const {tg, queryId, user} = useTelegram();
     
-    const onSendData = useCallback(() => {
-        const data = {
-            products: addedItems,
-            totalPrice: getTotalPrice(addedItems),
-            queryId,
-        }
-
-        fetch(serverLink + '/web-data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',                
-            },
-            body: JSON.stringify(data)
-        })
-    }, [addedItems, queryId])
-
     const onAdd = (product : any) => {
         const addedItemsTyped = addedItems as any[];
         const alreadyAdded = addedItemsTyped.find(item => item.id === product.id);
