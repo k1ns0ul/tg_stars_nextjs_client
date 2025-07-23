@@ -5,7 +5,7 @@ import { useTelegram } from '../../components/hooks/useTelegram';
 export function usePayment() {
     const [addedItems, setAddedItems] = useState<any[]>([]);
     const { tg, queryId, user, isLoaded, error, getUserId, isInTelegram, isFunctionAvailable } = useTelegram();
-    const serverLink = 'https://80.78.242.12';
+    const serverLink = 'http://80.78.242.12:8000';
 
     const handleStarsPayment = useCallback(async () => {
         try {
