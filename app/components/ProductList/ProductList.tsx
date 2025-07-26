@@ -7,7 +7,7 @@ import { usePayment } from "../../features/payment/Payment";
 const products = [
     {id: '1', title: 'item1', price: 1, description: 'description1'},
     {id: '2', title: 'item2', price: 1, description: 'description2'},
-    {id: '3', title: 'item3', price: 1, description: 'description3'},
+    {id: '3', title: 'item3', price: 15, description: 'description3'},
 ]
 
 export const getTotalPrice = (items : any) => {
