@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             start_parameter: 'start_parameter'
         };
 
-        const response = await fetch(`https://api.telegram.org/bot${token}/test/createInvoiceLink`, {
+        const response = await fetch(`https://api.telegram.org/bot${token}/createInvoiceLink`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
