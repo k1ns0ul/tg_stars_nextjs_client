@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
             const preCheckoutQuery = update.pre_checkout_query;
             
             try {
-                const response = await fetch(`https://api.telegram.org/bot${token}/test/answerPreCheckoutQuery`, {
+                const response = await fetch(`https://api.telegram.org/bot${token}/answerPreCheckoutQuery`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
                 console.error('Ошибка pre-checkout:', error);
                 
                 try {
-                    await fetch(`https://api.telegram.org/bot${token}/test/answerPreCheckoutQuery`, {
+                    await fetch(`https://api.telegram.org/bot${token}/answerPreCheckoutQuery`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -68,7 +68,7 @@ async function processSuccessfulPayment(message : any) {
     try {
         const orderId = payment.invoice_payload;
         
-        await fetch(`https://api.telegram.org/bot${token}/test/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
