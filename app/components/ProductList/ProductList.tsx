@@ -30,7 +30,7 @@ export const getTotalSubPrice = (items: any) => {
 const ProductList = () => {
     const { addedItems, setAddedItems, handleStarsPayment } = usePayment();
     const { tg, queryId, user } = useTelegram();
-    const { subPlan, setAddedSubs , handleSubscription} = useSubscription();
+    const { subPlan, setAddedSubs, handleSubscription } = useSubscription();
     
     const [purchaseType, setPurchaseType] = useState<'products' | 'subscription' | null>(null);
     const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
@@ -49,6 +49,7 @@ const ProductList = () => {
         setAddedItems(newItems);
         setPurchaseType('products');
         setSelectedSubscription(null);
+        setAddedSubs([]); 
         updateMainButton(newItems, null, 'products');
     }
 
@@ -57,11 +58,13 @@ const ProductList = () => {
             setSelectedSubscription(null);
             setPurchaseType(null);
             setAddedItems([]);
+            setAddedSubs([]);
             updateMainButton([], null, null);
         } else {
             setSelectedSubscription(sub);
             setPurchaseType('subscription');
             setAddedItems([]);
+            setAddedSubs([sub]);
             updateMainButton([], sub, 'subscription');
         }
     }
@@ -90,7 +93,7 @@ const ProductList = () => {
             console.log('Покупка товаров:', addedItems);
             handleStarsPayment();
         }
-    }, [purchaseType, selectedSubscription, addedItems, handleStarsPayment]);
+    }, [purchaseType, selectedSubscription, addedItems, handleStarsPayment, handleSubscription]);
 
     useEffect(() => {
         if ((addedItems.length > 0 || selectedSubscription) && tg && tg.MainButton) {

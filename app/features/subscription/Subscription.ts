@@ -26,10 +26,17 @@ export function useSubscription() {
                 throw new Error('Не удалось определить ID пользователя. Убедитесь, что приложение запущено в Telegram.');
             }
 
+            if (!subPlan || subPlan.length === 0) {
+                throw new Error('Не выбрана подписка для оплаты');
+            }
+
             const totalPrice = getTotalSubPrice(subPlan);
+            
+            console.log('Подписки для оплаты:', subPlan);
+            console.log('Общая стоимость:', totalPrice);
                         
             if (!Number.isInteger(totalPrice) || totalPrice <= 0) {
-                throw new Error(`Неверная сумма платежа: ${totalPrice}`);
+                throw new Error(`Неверная сумма платежа: ${totalPrice}. Проверьте выбранные подписки.`);
             }
 
             const response = await fetch('/api/create-stars-subscription', {
@@ -43,7 +50,7 @@ export function useSubscription() {
                     queryId,
                     userId: userId,
                     subscription_period: 30 * 24 * 60 * 60,
-                    amount: (subPlan),
+                    amount: totalPrice,
                     currency: 'XTR' 
                 })
             });
@@ -70,6 +77,7 @@ export function useSubscription() {
                         if (tg.MainButton) {
                             tg.MainButton.hide();
                         }
+                        setAddedSubs([]);
                         tg.showAlert('Подписка успешно оформлена! Оплата будет автоматически списываться каждый месяц.');
                         break;
                     case 'cancelled':
@@ -85,6 +93,9 @@ export function useSubscription() {
 
         } catch(error : any) {
             const errorMessage = error.message || 'Неизвестная ошибка';
+            
+            console.error('Ошибка оформления подписки:', error);
+            console.error('subPlan:', subPlan);
             
             if (tg && typeof tg.showAlert === 'function') {
                 tg.showAlert('Ошибка оформления подписки: ' + errorMessage);
