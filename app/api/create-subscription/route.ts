@@ -44,18 +44,15 @@ export async function POST(request: NextRequest) {
             title: 'Подписка на сервис',
             description: `Месячная подписка • Автопродление каждые 30 дней • ${products.length} услуг`,
             payload: payload,
-            provider_token: '',
-            currency: 'XTR', 
+            currency: 'XTR',
             prices: [{
                 label: 'Месячная подписка',
                 amount: amount
             }],
-            start_parameter: 'subscription_start',
-            subscription_period: subscription_period || 30 * 24 * 60 * 60, 
-            recurring: true 
+            subscription_period: subscription_period || 2592000, 
         };
 
-        const response = await fetch(`https://api.telegram.org/bot${token}/createInvoiceLink`, {
+        const response = await fetch(`https://api.telegram.org/bot${token}/exportInvoice`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -67,17 +64,33 @@ export async function POST(request: NextRequest) {
         
         if (!data.ok) {
             console.error('Ошибка Telegram API при создании подписки:', data);
+            
+            if (data.error_code === 400) {
+                return NextResponse.json(
+                    { error: 'Неверные параметры подписки', details: data.description }, 
+                    { status: 400 }
+                );
+            } else if (data.error_code === 405) {
+                return NextResponse.json(
+                    { error: 'Метод не поддерживается для подписок', details: 'Используйте правильный API для создания подписок' }, 
+                    { status: 405 }
+                );
+            }
+            
             return NextResponse.json(
                 { error: 'Ошибка создания подписки', details: data.description }, 
                 { status: 500 }
             );
         }
 
+        const invoiceUrl = `https://t.me/invoice/${data.result}`;
+
         return NextResponse.json({ 
-            invoice_link: data.result,
+            invoice_link: invoiceUrl,
             subscription_id: subscriptionId,
             amount: amount,
-            period: subscription_period || 30 * 24 * 60 * 60
+            period: subscription_period || 2592000,
+            invoice_slug: data.result
         });
 
     } catch (error: any) {
