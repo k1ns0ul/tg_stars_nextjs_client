@@ -44,25 +44,14 @@ export async function POST(request: NextRequest) {
             description: `Месячная подписка`,
             payload: payload,
             provider_token: '', 
+            recurring: true,
             currency: 'XTR', 
             prices: [{
                 label: 'Месячная подписка',
                 amount: amount
             }],
             start_parameter: 'subscription_start',
-            is_flexible: false,
-            need_name: false,
-            need_phone_number: false,
-            need_email: false,
-            need_shipping_address: false,
-            send_phone_number_to_provider: false,
-            send_email_to_provider: false,
-            max_tip_amount: 0,
-            suggested_tip_amounts: [],
-            provider_data: JSON.stringify({
-                recurring: true,
-                subscription_period: subscription_period || 2592000 
-            })
+            subscription_period: 2592000
         };
 
         const response = await fetch(`https://api.telegram.org/bot${token}/createInvoiceLink`, {
