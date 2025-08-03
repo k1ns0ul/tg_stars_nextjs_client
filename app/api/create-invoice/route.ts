@@ -75,13 +75,7 @@ export async function POST(request: NextRequest) {
         let orderId: string;
 
         if (isSubscription) {
-            if (!amount) {
-                return NextResponse.json(
-                    { error: 'Для подписки требуется указать amount' }, 
-                    { status: 400 }
-                );
-            }
-
+            
             orderId = `subscription_${Date.now()}_${userId}`;
             
             invoiceData = {
@@ -93,7 +87,7 @@ export async function POST(request: NextRequest) {
                 currency: 'XTR', 
                 prices: [{
                     label: 'Месячная подписка',
-                    amount: amount
+                    amount: 1
                 }],
                 start_parameter: 'start_parameter',
                 subscription_period: 2592000 
