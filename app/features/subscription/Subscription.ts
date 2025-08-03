@@ -39,12 +39,12 @@ export function useSubscription() {
                 },
                 body: JSON.stringify({
                     products: subPlan,
+                    totalPrice: totalPrice,
                     queryId,
                     userId: userId,
-                    // Период подписки в секундах (30 дней)
                     subscription_period: 30 * 24 * 60 * 60,
                     amount: (subPlan),
-                    currency: 'XTR' // Telegram Stars
+                    currency: 'XTR' 
                 })
             });
 
