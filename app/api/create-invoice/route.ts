@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         const payload = orderId;
 
         const invoiceData = {
-            title: 'Покупка товаров',
+            title: 'Покупка подписки',
             description: `Количество товаров: ${products.length}`,
             payload: payload,
             provider_token: '',
