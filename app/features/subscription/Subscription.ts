@@ -47,11 +47,9 @@ export function useSubscription() {
                 body: JSON.stringify({
                     products: subPlan,
                     totalPrice: totalPrice,
-                    queryId,
                     userId: userId,
-                    subscription_period: 30 * 24 * 60 * 60,
-                    amount: totalPrice,
-                    currency: 'XTR' 
+                    subscription_period: 30 * 24 * 60 * 60, 
+                    amount: totalPrice 
                 })
             });
 
@@ -122,6 +120,12 @@ export function useSubscription() {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.details || errorData.error || `Ошибка сервера: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            
+            if (!responseData.success) {
+                throw new Error(responseData.message || 'Ошибка управления подпиской');
             }
 
             const actionText = action === 'cancel' ? 'отменена' : 'возобновлена';
