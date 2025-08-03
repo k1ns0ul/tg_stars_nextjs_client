@@ -48,6 +48,7 @@ export function useSubscription() {
                     products: subPlan,
                     totalPrice: totalPrice,
                     userId: userId,
+                    isSubscription: true,
                 })
             });
     

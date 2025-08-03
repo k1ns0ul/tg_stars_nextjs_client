@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             orderId = `order_${Date.now()}_${userId}`;
             
             invoiceData = {
-                title: '🛒 Покупка товаров',
+                title: 'Покупка товаров',
                 description: `Количество товаров: ${products.length}`,
                 payload: orderId,
                 provider_token: '',
