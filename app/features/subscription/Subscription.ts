@@ -50,6 +50,7 @@ export function useSubscription() {
                     userId: userId,
                 })
             });
+    
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
