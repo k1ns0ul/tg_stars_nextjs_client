@@ -39,7 +39,7 @@ export function useSubscription() {
                 throw new Error(`Неверная сумма платежа: ${totalPrice}. Проверьте выбранные подписки.`);
             }
 
-            const response = await fetch('/api/create-stars-subscription', {
+            const response = await fetch('/api/create-invoice', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -48,8 +48,6 @@ export function useSubscription() {
                     products: subPlan,
                     totalPrice: totalPrice,
                     userId: userId,
-                    subscription_period: 30 * 24 * 60 * 60, 
-                    amount: totalPrice 
                 })
             });
 
