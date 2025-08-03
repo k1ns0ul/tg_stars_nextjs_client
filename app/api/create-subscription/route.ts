@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
                             `Период: 30 дней\n` +
                             `ID транзакции: ${msg.successful_payment.telegram_payment_charge_id}\n\n`
                         );
-
                     }
                 } catch (e: any) {
                     console.error('Ошибка при обработке платежа подписки:', e);
@@ -41,18 +40,32 @@ export async function POST(request: NextRequest) {
         const payload = subscriptionId;
 
         const invoiceData = {
-            title: 'Подписка на сервис',
-            description: `Месячная подписка • Автопродление каждые 30 дней • ${products.length} услуг`,
+            title: 'Подписка',
+            description: `Месячная подписка`,
             payload: payload,
-            currency: 'XTR',
+            provider_token: '', 
+            currency: 'XTR', 
             prices: [{
                 label: 'Месячная подписка',
                 amount: amount
             }],
-            subscription_period: subscription_period || 2592000, 
+            start_parameter: 'subscription_start',
+            is_flexible: false,
+            need_name: false,
+            need_phone_number: false,
+            need_email: false,
+            need_shipping_address: false,
+            send_phone_number_to_provider: false,
+            send_email_to_provider: false,
+            max_tip_amount: 0,
+            suggested_tip_amounts: [],
+            provider_data: JSON.stringify({
+                recurring: true,
+                subscription_period: subscription_period || 2592000 
+            })
         };
 
-        const response = await fetch(`https://api.telegram.org/bot${token}/exportInvoice`, {
+        const response = await fetch(`https://api.telegram.org/bot${token}/createInvoiceLink`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -63,34 +76,32 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         
         if (!data.ok) {
-            console.error('Ошибка Telegram API при создании подписки:', data);
+            console.error('Ошибка Telegram Bot API при создании подписки:', data);
+            console.error('Отправленные данные:', invoiceData);
+            
+            let errorMessage = data.description || 'Неизвестная ошибка';
             
             if (data.error_code === 400) {
-                return NextResponse.json(
-                    { error: 'Неверные параметры подписки', details: data.description }, 
-                    { status: 400 }
-                );
-            } else if (data.error_code === 405) {
-                return NextResponse.json(
-                    { error: 'Метод не поддерживается для подписок', details: 'Используйте правильный API для создания подписок' }, 
-                    { status: 405 }
-                );
+                if (data.description?.includes('CURRENCY_NOT_SUPPORTED')) {
+                    errorMessage = 'Валюта XTR (Telegram Stars) не поддерживается в вашем регионе';
+                } else if (data.description?.includes('AMOUNT_TOO_HIGH')) {
+                    errorMessage = 'Сумма подписки превышает максимально допустимую';
+                } else if (data.description?.includes('SUBSCRIPTION_PERIOD_INVALID')) {
+                    errorMessage = 'Неверный период подписки. Разрешены только 30 дней';
+                }
             }
             
             return NextResponse.json(
-                { error: 'Ошибка создания подписки', details: data.description }, 
-                { status: 500 }
+                { error: 'Ошибка создания подписки', details: errorMessage }, 
+                { status: data.error_code || 500 }
             );
         }
 
-        const invoiceUrl = `https://t.me/invoice/${data.result}`;
-
         return NextResponse.json({ 
-            invoice_link: invoiceUrl,
+            invoice_link: data.result,
             subscription_id: subscriptionId,
             amount: amount,
-            period: subscription_period || 2592000,
-            invoice_slug: data.result
+            period: subscription_period || 2592000
         });
 
     } catch (error: any) {
@@ -101,5 +112,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-
-
